@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spelling Bee Mastery Pro</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f8ff; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        
+        .header-info { text-align: center; margin-bottom: 20px; }
+        .settings-panel { margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px; }
+        
+        .card { width: 450px; height: 320px; perspective: 1000px; cursor: pointer; }
+        .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 15px; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .front, .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; border-radius: 15px; box-sizing: border-box; border: 2px solid #ddd; }
+        
+        .front { background-color: #ffffff; color: #333; }
+        .back { background-color: #ffcc00; color: #000; transform: rotateY(180deg); }
+        
+        .word-text { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
+        .definition-text { font-size: 1.2em; font-weight: 500; line-height: 1.4; }
+        .sentence-text { font-style: italic; margin-top: 15px; color: #555; font-size: 1.1em; }
+        
+        .btn-audio { background-color: #6f42c1; font-size: 20px; width: 55px; height: 55px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-audio:hover { background-color: #59359a; transform: scale(1.1); }
+
+        /* Control Bar Styles */
+        .controls { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .btn-action { padding: 12px 20px; font-size: 15px; cursor: pointer; border-radius: 8px; border: none; color: white; font-weight: bold; transition: 0.2s; min-width: 100px; }
+        
+        .btn-blue { background-color: #007bff; }
+        .btn-blue:hover { background-color: #0056b3; }
+        
+        .btn-green { background-color: #28a745; }
+        .btn-green:hover { background-color: #218838; }
+        
+        .btn-orange { background-color: #fd7e14; }
+        .btn-orange:hover { background-color: #d96a0b; }
+
+        .progress-bar { width: 450px; background-color: #ddd; border-radius: 10px; height: 10px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: #28a745; width: 0%; transition: width 0.3s; }
+        .stats { font-weight: bold; color: #007bff; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-info">
+        <h1>🐝 Spelling Bee Mastery</h1>
+        <div class="settings-panel">
+            <span>Study Mode:</span>
+            <select id="modeSelect" onchange="updateCard()">
+                <option value="def-first">Definition First</option>
+                <option value="word-first">Spelling First</option>
+            </select>
+            <button onclick="resetAll()" style="font-size: 12px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Reset All</button>
+        </div>
+        <div class="stats" id="statsDisplay">Remaining: 50 | Mastered: 0</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    
+    <div class="card" id="mainCard">
+        <div class="card-inner">
+            <div class="front" id="frontFace"></div>
+            <div class="back" id="backFace"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-action btn-blue" onclick="prevCard()">⬅️ Previous</button>
+        <button class="btn-action btn-blue" onclick="nextCard()">Next ➡️</button>
+        <button class="btn-action btn-green" onclick="markAsMastered()">✅ Mastered</button>
+        <button class="btn-action btn-orange" onclick="shuffleCards()">🔀 Shuffle</button>
+    </div>
+
+    <script>
+        const originalWords = [
+            {w: "hesitate", d: "To pause before you do something because you are unsure.", s: "Please do not _______ to ask for help."},
+            {w: "fragments", d: "Small broken parts or pieces of something.", s: "The vase broke into many _______."},
+            {w: "ration", d: "A fixed amount of something officially allowed to each person.", s: "We had to _______ our water during the hike."},
+            {w: "frustration", d: "The feeling of being upset because you cannot do something.", s: "He cried in _______ when he couldn't solve the puzzle."},
+            {w: "aroma", d: "A pleasant, noticeable smell.", s: "The _______ of fresh bread filled the kitchen."},
+            {w: "perfume", d: "A liquid that has a sweet, pleasant smell.", s: "My mother wears flower-scented _______."},
+            {w: "discoveries", d: "Things found or learned for the first time.", s: "Scientific _______ help us understand the world."},
+            {w: "prognosis", d: "A doctor's opinion of how an illness will develop.", s: "The doctor's _______ was very positive."},
+            {w: "gallop", d: "The fastest pace of a horse.", s: "The horses began to _______ across the field."},
+            {w: "fluently", d: "Able to speak or write a language easily.", s: "She speaks Spanish _______."},
+            {w: "sardines", d: "Small, silvery fish often packed in cans.", s: "Some people enjoy eating _______ on crackers."},
+            {w: "rickety", d: "Not strong or stable; likely to break.", s: "The _______ old bridge swayed in the wind."},
+            {w: "porridge", d: "A soft food made by boiling oats in water or milk.", s: "Goldilocks ate the _______."},
+            {w: "beige", d: "A very light brown or yellowish-gray color.", s: "The walls are painted a soft _______."},
+            {w: "gaunt", d: "Very thin, especially because of hunger.", s: "The stray dog looked _______ and tired."},
+            {w: "nautical", d: "Relating to sailors, ships, or navigation.", s: "The room had many _______ decorations."},
+            {w: "foreign", d: "From a country other than your own.", s: "Learning a _______ language is rewarding."},
+            {w: "scorcher", d: "A very hot day.", s: "Today is a real _______!"},
+            {w: "deflated", d: "Having let the air out of something.", s: "My basketball is _______ and won't bounce."},
+            {w: "cosmetics", d: "Products used to improve appearance.", s: "Lipsticks are types of _______."},
+            {w: "unruly", d: "Difficult to control or manage.", s: "The wind made my hair very _______."},
+            {w: "moustache", d: "Hair grown on a man's upper lip.", s: "He has a thick, white _______."},
+            {w: "sinister", d: "Giving the impression that something evil will happen.", s: "The villain had a _______ laugh."},
+            {w: "lurches", d: "To make an abrupt, unsteady movement.", s: "The bus _______ forward when it starts."},
+            {w: "Buffalo", d: "A large wild animal of the cow family.", s: "We saw a herd of _______."},
+            {w: "fabulous", d: "Extraordinary; especially good.", s: "You did a _______ job!"},
+            {w: "mysterious", d: "Difficult or impossible to understand.", s: "A _______ box was on our doorstep."},
+            {w: "anguish", d: "Severe mental or physical pain.", s: "She felt _______ when she lost her cat."},
+            {w: "lilt", d: "A characteristic rising and falling of the voice.", s: "She speaks with a cheerful _______."},
+            {w: "democracy", d: "A system of government where people vote.", s: "In a _______, people vote for leaders."},
+            {w: "ancestral", d: "Belonging to or inherited from ancestors.", s: "This is an _______ heirloom."},
+            {w: "enormous", d: "Very large in size or quantity.", s: "The elephant ate an _______ amount."},
+            {w: "dubious", d: "Hesitating or doubting.", s: "I was _______ about his strange story."},
+            {w: "scavenger", d: "An animal that feeds on dead matter.", s: "A vulture is a well-known _______."},
+            {w: "unleash", d: "To release a strong force or emotion.", s: "Don't _______ the dog in the park."},
+            {w: "crawdad", d: "A freshwater animal like a small lobster.", s: "We caught a _______ in the creek."},
+            {w: "mascot", d: "A character supposed to bring good luck.", s: "The school's _______ is a tiger."},
+            {w: "artifacts", d: "Objects made by humans from the past.", s: "The museum has ancient _______."},
+            {w: "tuxedo", d: "A man's formal suit for the evening.", s: "He wore a _______ to the wedding."},
+            {w: "language", d: "The method of human communication.", s: "English is a common _______."},
+            {w: "sequins", d: "Small, shiny disks sewn onto clothing.", s: "Her dress was covered in _______."},
+            {w: "lanky", d: "Tall and thin with long limbs.", s: "The _______ player reached the hoop easily."},
+            {w: "brandished", d: "Waved something in excitement or threat.", s: "The knight _______ his sword."},
+            {w: "conical", d: "Shaped like a cone.", s: "The wizard wore a tall, _______ hat."},
+            {w: "pediatric", d: "Relating to medical care of children.", s: "He went to the _______ clinic."},
+            {w: "rummage", d: "To search messily through a pile.", s: "I had to _______ through my drawer."},
+            {w: "grimace", d: "A twisted expression of pain.", s: "She made a _______ when she tasted the lemon."},
+            {w: "geranium", d: "A garden plant with red or pink flowers.", s: "My grandma grows a red _______."},
+            {w: "ebony", d: "A very dark black color.", s: "The piano has black _______ keys."},
+            {w: "paltry", d: "A very small or meager amount.", s: "He got a _______ amount of candy."}
+        ];
+
+        let activeWords = [...originalWords];
+        let masteredCount = 0;
+        let currentIndex = 0;
+        const cardElement = document.getElementById('mainCard');
+
+        cardElement.addEventListener('click', function(e) {
+            if (e.target.closest('button')) return;
+            this.classList.toggle('flipped');
+        });
+
+        function speakWord(event) {
+            if (event) event.stopPropagation();
+            const utterance = new SpeechSynthesisUtterance(activeWords[currentIndex].w);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function markAsMastered() {
+            if (activeWords.length === 0) return;
+            
+            activeWords.splice(currentIndex, 1);
+            masteredCount++;
+            
+            if (activeWords.length === 0) {
+                alert("🎉 Amazing! You mastered all 50 words!");
+                resetAll();
+                return;
+            }
+            
+            if (currentIndex >= activeWords.length) currentIndex = 0;
+            updateCard();
+        }
+
+        function updateCard() {
+            const mode = document.getElementById('modeSelect').value;
+            const stats = document.getElementById('statsDisplay');
+            const progressFill = document.getElementById('progressFill');
+            
+            if (activeWords.length === 0) return;
+            
+            const current = activeWords[currentIndex];
+            cardElement.classList.remove('flipped');
+
+            // Update Stats
+            stats.innerText = `Remaining: ${activeWords.length} | Mastered: ${masteredCount}`;
+            progressFill.style.width = `${(masteredCount / 50) * 100}%`;
+
+            setTimeout(() => {
+                const frontFace = document.getElementById('frontFace');
+                const backFace = document.getElementById('backFace');
+                
+                if (mode === 'def-first') {
+                    frontFace.innerHTML = `<div class="definition-text">${current.d}</div><div class="sentence-text">${current.s}</div><div style="font-size:0.8em; color:#aaa; margin-top:20px;">(Guess the word, then flip)</div>`;
+                    backFace.innerHTML = `<button class="btn-audio" onclick="speakWord(event)">🔊</button><div class="word-text">${current.w}</div><div style="font-size:0.8em; color:#444; margin-top:15px;">Correct? Click Mastered below!</div>`;
+                } else {
+                    frontFace.innerHTML = `<button class="btn-audio" onclick="speakWord(event)">🔊</button><div class="word-text">${current.w}</div><div style="font-size:0.8em; color:#aaa; margin-top:20px;">(Recall definition, then flip)</div>`;
+                    backFace.innerHTML = `<div class="definition-text">${current.d}</div><div class="sentence-text">${current.s}</div><div style="font-size:0.8em; color:#444; margin-top:15px;">Remembered it? Click Mastered below!</div>`;
+                }
+            }, 150);
+        }
+
+        function nextCard() { currentIndex = (currentIndex + 1) % activeWords.length; updateCard(); }
+        function prevCard() { currentIndex = (currentIndex - 1 + activeWords.length) % activeWords.length; updateCard(); }
+        function shuffleCards() { activeWords.sort(() => Math.random() - 0.5); currentIndex = 0; updateCard(); }
+        function resetAll() { activeWords = [...originalWords]; masteredCount = 0; currentIndex = 0; updateCard(); }
+
+        updateCard();
+    </script>
+</body>
+</html>
