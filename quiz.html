@@ -3,24 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spelling Bee Quiz</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <title>Spelling Bee Quiz (Debug Mode)</title>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f0f8ff; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
         .quiz-container { width: 100%; max-width: 500px; background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 25px; text-align: center; position: relative; }
         
-        /* Header & Reset Button */
         .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { margin: 0; color: #333; font-size: 1.5rem; text-align: left; }
         .btn-reset { background: #ffebee; color: #c62828; border: none; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
         
         .score-board { font-size: 1rem; color: #666; margin-bottom: 20px; font-weight: bold; background: #f8f9fa; padding: 10px; border-radius: 10px; }
         
-        .question-text { font-size: 1.3rem; font-weight: 600; color: #222; margin-bottom: 25px; line-height: 1.4; }
+        /* Error message style */
+        .question-text { font-size: 1.3rem; font-weight: 600; color: #222; margin-bottom: 25px; line-height: 1.4; min-height: 50px; }
+        
         .hint-text { font-size: 0.9rem; color: #888; margin-bottom: 20px; font-style: italic; }
-
         .options-grid { display: flex; flex-direction: column; gap: 12px; }
         
         .btn-option {
@@ -29,7 +28,6 @@
             transition: all 0.2s; font-weight: 500; text-align: left;
         }
         .btn-option:hover { border-color: var(--primary); background: #e7f1ff; }
-        
         .btn-option.correct { background: #d4edda; border-color: var(--success); color: #155724; }
         .btn-option.wrong { background: #f8d7da; border-color: var(--danger); color: #721c24; opacity: 0.7; }
         
@@ -43,10 +41,21 @@
             border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold;
             cursor: pointer; width: 100%; display: none;
         }
-        .btn-next:hover { background: #0056b3; }
-
+        
         .home-link { margin-top: 20px; color: #007bff; text-decoration: none; font-size: 0.9rem; }
     </style>
+    
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            var display = document.getElementById('questionText');
+            if(display) {
+                display.innerText = "⚠️ ERROR: " + msg + "\nLine: " + line;
+                display.style.color = "red";
+            } else {
+                alert("Critical Error: " + msg);
+            }
+        };
+    </script>
 </head>
 <body>
 
@@ -81,6 +90,7 @@
     <a href="index.html" class="home-link">← Back to Flashcards</a>
 
     <script>
+        // --- DATA SECTION ---
         const questions = [
             {
                 q: "Which word correctly fills in the blank?\n\"Please do not ______ to ask for help if you are confused.\"",
@@ -186,4 +196,134 @@
 
         let currentIdx = 0;
         let score = 0;
-        let
+        let answered = false;
+        const STORAGE_KEY = 'spelling_quiz_debug'; 
+
+        // --- SAFE LOGIC SECTION ---
+        function safeLoad() {
+            try {
+                // Force clear first to verify functionality
+                // localStorage.removeItem(STORAGE_KEY); 
+                
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    currentIdx = data.idx || 0;
+                    score = data.score || 0;
+                }
+            } catch (e) {
+                console.error("Load error", e);
+                localStorage.removeItem(STORAGE_KEY);
+                currentIdx = 0;
+            }
+            
+            // Validate Index
+            if (typeof currentIdx !== 'number' || currentIdx < 0 || currentIdx >= questions.length) {
+                currentIdx = 0;
+            }
+        }
+
+        function saveProgress() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ idx: currentIdx, score: score }));
+            } catch(e) { console.error(e); }
+        }
+
+        function forceReset() {
+            if(confirm("Start quiz over?")) {
+                restartQuiz();
+            }
+        }
+
+        function restartQuiz() {
+            localStorage.removeItem(STORAGE_KEY);
+            currentIdx = 0;
+            score = 0;
+            answered = false;
+            document.getElementById('endScreen').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            const qData = questions[currentIdx];
+            
+            const qText = document.getElementById('questionText');
+            if(qText) qText.innerText = qData.q;
+            
+            document.getElementById('hintText').innerText = "💡 Hint: " + qData.hint;
+            document.getElementById('scoreBoard').innerText = `Question ${currentIdx + 1} / ${questions.length} | Score: ${score}`;
+            document.getElementById('rationaleBox').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+
+            const grid = document.getElementById('optionsGrid');
+            grid.innerHTML = '';
+
+            const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt.t;
+                btn.onclick = () => checkAnswer(btn, opt);
+                grid.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, optionData) {
+            if (answered) return;
+            answered = true;
+
+            const rationaleBox = document.getElementById('rationaleBox');
+            rationaleBox.style.display = 'block';
+            rationaleBox.innerText = (optionData.c ? "✅ " : "❌ ") + optionData.r;
+
+            if (optionData.c) {
+                btn.classList.add('correct');
+                score++;
+            } else {
+                btn.classList.add('wrong');
+                const allBtns = document.querySelectorAll('.btn-option');
+                allBtns.forEach(b => {
+                    if (questions[currentIdx].options.find(o => o.t === b.innerText && o.c)) {
+                        b.classList.add('correct');
+                    }
+                });
+            }
+            
+            document.getElementById('scoreBoard').innerText = `Question ${currentIdx + 1} / ${questions.length} | Score: ${score}`;
+            document.getElementById('nextBtn').style.display = 'block';
+            // Save after answering
+            saveProgress(); 
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx >= questions.length) {
+                endGame();
+            } else {
+                saveProgress();
+                loadQuestion();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('endScreen').style.display = 'block';
+            document.getElementById('finalScore').innerText = `${score} / ${questions.length}`;
+            localStorage.removeItem(STORAGE_KEY);
+        }
+
+        // --- INITIALIZATION ---
+        // Verify everything is loaded
+        if (!questions || questions.length === 0) {
+            document.getElementById('questionText').innerText = "Error: Questions not loaded.";
+        } else {
+            safeLoad();
+            loadQuestion();
+        }
+
+    </script>
+</body>
+</html>
