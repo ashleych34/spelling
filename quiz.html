@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spelling Bee Quiz (Debug Mode)</title>
+    <title>Spelling Bee Quiz: Full List</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f0f8ff; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
@@ -12,76 +13,66 @@
         
         .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { margin: 0; color: #333; font-size: 1.5rem; text-align: left; }
-        .btn-reset { background: #ffebee; color: #c62828; border: none; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+        .btn-reset { background: #ffebee; color: #c62828; border: none; padding: 8px 15px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         
         .score-board { font-size: 1rem; color: #666; margin-bottom: 20px; font-weight: bold; background: #f8f9fa; padding: 10px; border-radius: 10px; }
         
-        /* Error message style */
-        .question-text { font-size: 1.3rem; font-weight: 600; color: #222; margin-bottom: 25px; line-height: 1.4; min-height: 50px; }
+        .definition-box { font-size: 1.2rem; font-weight: 600; color: #222; margin-bottom: 10px; line-height: 1.4; min-height: 50px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .sentence-text { font-size: 1rem; color: #555; font-style: italic; margin-top: 10px; font-weight: normal; }
         
-        .hint-text { font-size: 0.9rem; color: #888; margin-bottom: 20px; font-style: italic; }
-        .options-grid { display: flex; flex-direction: column; gap: 12px; }
+        .options-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
         
         .btn-option {
             background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px;
-            padding: 15px; font-size: 1.1rem; color: #333; cursor: pointer;
-            transition: all 0.2s; font-weight: 500; text-align: left;
+            padding: 15px; font-size: 1.2rem; color: #333; cursor: pointer;
+            transition: all 0.2s; font-weight: 600; text-align: left; position: relative;
         }
         .btn-option:hover { border-color: var(--primary); background: #e7f1ff; }
         .btn-option.correct { background: #d4edda; border-color: var(--success); color: #155724; }
         .btn-option.wrong { background: #f8d7da; border-color: var(--danger); color: #721c24; opacity: 0.7; }
         
-        .rationale-box {
-            margin-top: 20px; padding: 15px; border-radius: 10px; background: #e2e3e5;
-            color: #383d41; font-size: 0.95rem; line-height: 1.4; text-align: left; display: none;
-        }
-        
         .btn-next {
             margin-top: 20px; padding: 15px 30px; background: var(--primary); color: white;
             border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold;
-            cursor: pointer; width: 100%; display: none;
+            cursor: pointer; width: 100%; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
-        .home-link { margin-top: 20px; color: #007bff; text-decoration: none; font-size: 0.9rem; }
+        .home-link { margin-top: 20px; color: #007bff; text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+        
+        .btn-audio { 
+            background-color: #6f42c1; font-size: 20px; width: 40px; height: 40px; 
+            border-radius: 50%; border: none; color: white; cursor: pointer; 
+            margin-bottom: 10px; display: inline-flex; align-items: center; justify-content: center;
+        }
     </style>
-    
-    <script>
-        window.onerror = function(msg, url, line, col, error) {
-            var display = document.getElementById('questionText');
-            if(display) {
-                display.innerText = "⚠️ ERROR: " + msg + "\nLine: " + line;
-                display.style.color = "red";
-            } else {
-                alert("Critical Error: " + msg);
-            }
-        };
-    </script>
 </head>
 <body>
 
     <div class="quiz-container">
         <div class="quiz-header">
-            <h1>📝 Spelling Quiz</h1>
+            <h1>📝 Full List Quiz</h1>
             <button class="btn-reset" onclick="forceReset()">Reset</button>
         </div>
         
         <div class="score-board" id="scoreBoard">Score: 0 / 0</div>
         
         <div id="gameArea">
-            <div class="question-text" id="questionText">Loading...</div>
-            <div class="hint-text" id="hintText"></div>
+            <button class="btn-audio" onclick="speakWord()" title="Listen">🔊</button>
+            <div class="definition-box" id="questionText">
+                <span id="defText">Loading...</span>
+                <span id="sentText" class="sentence-text"></span>
+            </div>
             
             <div class="options-grid" id="optionsGrid"></div>
 
-            <div class="rationale-box" id="rationaleBox"></div>
-            <button class="btn-next" id="nextBtn" onclick="nextQuestion()">Next Question ➡️</button>
+            <button class="btn-next" id="nextBtn" onclick="nextQuestion()">Next Word ➡️</button>
         </div>
 
         <div id="endScreen" style="display: none;">
-            <h2>🎉 Quiz Complete!</h2>
-            <p style="font-size: 1.2rem;">Your Final Score:</p>
+            <h2>🎉 Challenge Complete!</h2>
+            <p style="font-size: 1.2rem;">Final Score:</p>
             <h1 style="font-size: 3rem; color: var(--primary);" id="finalScore">0</h1>
-            <button class="btn-next" style="display: block;" onclick="restartQuiz()">Try Again 🔄</button>
+            <button class="btn-next" style="display: block;" onclick="restartQuiz()">Restart Full List 🔄</button>
             <br>
             <a href="index.html" class="btn-next" style="display: block; background: #6c757d; text-decoration: none;">Back to Flashcards</a>
         </div>
@@ -90,239 +81,259 @@
     <a href="index.html" class="home-link">← Back to Flashcards</a>
 
     <script>
-        // --- DATA SECTION ---
-        const questions = [
-            {
-                q: "Which word correctly fills in the blank?\n\"Please do not ______ to ask for help if you are confused.\"",
-                hint: "To pause briefly because you are unsure.",
-                options: [
-                    { t: "hesitate", r: "Correct! To pause before acting.", c: true },
-                    { t: "hesatate", r: "Incorrect. The middle vowel is 'i', not 'a'.", c: false },
-                    { t: "hesetate", r: "Incorrect. It is spelled 'h-e-s-i'.", c: false },
-                    { t: "hesitait", r: "Incorrect. The suffix is '-ate'.", c: false }
-                ]
-            },
-            {
-                q: "If something is broken into small pieces, we call those pieces ______.",
-                hint: "Sounds like 'frag-ments'.",
-                options: [
-                    { t: "fragments", r: "Correct! Small broken parts.", c: true },
-                    { t: "fragmants", r: "Incorrect. The suffix uses 'e' (ments).", c: false },
-                    { t: "fragmints", r: "Incorrect. Not spelled like a breath 'mint'.", c: false },
-                    { t: "flagments", r: "Incorrect. Starts with 'fr', not 'fl'.", c: false }
-                ]
-            },
-            {
-                q: "Which word describes a light brown or yellowish-gray color?",
-                hint: "Starts with 'b', French origin.",
-                options: [
-                    { t: "beige", r: "Correct! Remember 'e' before 'i' for this word.", c: true },
-                    { t: "biege", r: "Incorrect. This word breaks the 'i before e' rule.", c: false },
-                    { t: "bage", r: "Incorrect. Too simple!", c: false },
-                    { t: "baige", r: "Incorrect. Needs an 'ei' combination.", c: false }
-                ]
-            },
-            {
-                q: "Choose the correct spelling for the hair grown on a man's upper lip.",
-                hint: "Ends with a 'che' sound spelled 'che'.",
-                options: [
-                    { t: "mustache", r: "Correct!", c: true },
-                    { t: "mustash", r: "Incorrect. Ends in 'che', not 'sh'.", c: false },
-                    { t: "mostache", r: "Incorrect. Starts with 'mu', not 'mo'.", c: false },
-                    { t: "mustach", r: "Incorrect. Needs a silent 'e' at the end.", c: false }
-                ]
-            },
-            {
-                q: "What is the correct spelling for a very large wild animal of the cow family?",
-                hint: "Double 'f', single 'l'.",
-                options: [
-                    { t: "Buffalo", r: "Correct!", c: true },
-                    { t: "Buffalow", r: "Incorrect. No 'w' at the end.", c: false },
-                    { t: "Buffolo", r: "Incorrect. Second vowel is 'a'.", c: false },
-                    { t: "Bufalo", r: "Incorrect. Needs double 'f'.", c: false }
-                ]
-            },
-            {
-                q: "Which word means 'extraordinary' or 'especially good'?",
-                hint: "Ends in '-ous'.",
-                options: [
-                    { t: "fabulous", r: "Correct!", c: true },
-                    { t: "fabulis", r: "Incorrect. Suffix is '-ous'.", c: false },
-                    { t: "fabelous", r: "Incorrect. No 'e' in the middle.", c: false },
-                    { t: "fabullous", r: "Incorrect. Only one 'l'.", c: false }
-                ]
-            },
-            {
-                q: "Which word describes a tall and thin person with long limbs?",
-                hint: "Rhymes with 'thanky'.",
-                options: [
-                    { t: "lanky", r: "Correct!", c: true },
-                    { t: "lankey", r: "Incorrect. No 'e' before 'y'.", c: false },
-                    { t: "lancky", r: "Incorrect. No 'c' needed.", c: false },
-                    { t: "lenky", r: "Incorrect. Vowel is 'a'.", c: false }
-                ]
-            },
-            {
-                q: "Complete the sentence: \"The wizard wore a tall, ______ hat.\"",
-                hint: "Shaped like a cone.",
-                options: [
-                    { t: "conical", r: "Correct!", c: true },
-                    { t: "conicle", r: "Incorrect. Ends in '-ical'.", c: false },
-                    { t: "connicel", r: "Incorrect. Only one 'n'.", c: false },
-                    { t: "coneical", r: "Incorrect. Drop the 'e' from cone.", c: false }
-                ]
-            },
-            {
-                q: "Which word refers to the medical care of children?",
-                hint: "Starts with 'pedi-'.",
-                options: [
-                    { t: "pediatric", r: "Correct!", c: true },
-                    { t: "pedeatric", r: "Incorrect. 'dia', not 'dea'.", c: false },
-                    { t: "pediatrick", r: "Incorrect. Ends in 'c', not 'ck'.", c: false },
-                    { t: "peediatric", r: "Incorrect. Single 'e'.", c: false }
-                ]
-            },
-            {
-                q: "If you look through a messy drawer to find something, you ______ through it.",
-                hint: "Double 'm', ends in '-age'.",
-                options: [
-                    { t: "rummage", r: "Correct!", c: true },
-                    { t: "rumage", r: "Incorrect. Needs double 'm'.", c: false },
-                    { t: "rummidge", r: "Incorrect. Suffix is '-age'.", c: false },
-                    { t: "rommage", r: "Incorrect. Starts with 'ru'.", c: false }
-                ]
-            }
+        // 1. THE FULL 50 WORD LIST
+        const wordList = [
+            {w: "hesitate", d: "To pause before you do something because you are unsure.", s: "Please do not _______ to ask for help."},
+            {w: "fragments", d: "Small broken parts or pieces of something.", s: "The vase broke into many _______."},
+            {w: "ration", d: "A fixed amount of something officially allowed to each person.", s: "We had to _______ our water during the hike."},
+            {w: "frustration", d: "The feeling of being upset because you cannot do something.", s: "He cried in _______ when he couldn't solve the puzzle."},
+            {w: "aroma", d: "A pleasant, noticeable smell.", s: "The _______ of fresh bread filled the kitchen."},
+            {w: "perfume", d: "A liquid that has a sweet, pleasant smell.", s: "My mother wears flower-scented _______."},
+            {w: "discoveries", d: "Things found or learned for the first time.", s: "Scientific _______ help us understand the world."},
+            {w: "prognosis", d: "A doctor's opinion of how an illness will develop.", s: "The doctor's _______ was very positive."},
+            {w: "gallop", d: "The fastest pace of a horse.", s: "The horses began to _______ across the field."},
+            {w: "fluently", d: "Able to speak or write a language easily.", s: "She speaks Spanish _______."},
+            {w: "sardines", d: "Small, silvery fish often packed in cans.", s: "Some people enjoy eating _______ on crackers."},
+            {w: "rickety", d: "Not strong or stable; likely to break.", s: "The _______ old bridge swayed in the wind."},
+            {w: "porridge", d: "A soft food made by boiling oats in water or milk.", s: "Goldilocks ate the _______."},
+            {w: "beige", d: "A very light brown or yellowish-gray color.", s: "The walls are painted a soft _______."},
+            {w: "gaunt", d: "Very thin, especially because of hunger.", s: "The stray dog looked _______ and tired."},
+            {w: "nautical", d: "Relating to sailors, ships, or navigation.", s: "The room had many _______ decorations."},
+            {w: "foreign", d: "From a country other than your own.", s: "Learning a _______ language is rewarding."},
+            {w: "scorcher", d: "A very hot day.", s: "Today is a real _______!"},
+            {w: "deflated", d: "Having let the air out of something.", s: "My basketball is _______ and won't bounce."},
+            {w: "cosmetics", d: "Products used to improve appearance.", s: "Lipsticks are types of _______."},
+            {w: "unruly", d: "Difficult to control or manage.", s: "The wind made my hair very _______."},
+            {w: "moustache", d: "Hair grown on a man's upper lip.", s: "He has a thick, white _______."},
+            {w: "sinister", d: "Giving the impression that something evil will happen.", s: "The villain had a _______ laugh."},
+            {w: "lurches", d: "To make an abrupt, unsteady movement.", s: "The bus _______ forward when it starts."},
+            {w: "Buffalo", d: "A large wild animal of the cow family.", s: "We saw a herd of _______."},
+            {w: "fabulous", d: "Extraordinary; especially good.", s: "You did a _______ job!"},
+            {w: "mysterious", d: "Difficult or impossible to understand.", s: "A _______ box was on our doorstep."},
+            {w: "anguish", d: "Severe mental or physical pain.", s: "She felt _______ when she lost her cat."},
+            {w: "lilt", d: "A characteristic rising and falling of the voice.", s: "She speaks with a cheerful _______."},
+            {w: "democracy", d: "A system of government where people vote.", s: "In a _______, people vote for leaders."},
+            {w: "ancestral", d: "Belonging to or inherited from ancestors.", s: "This is an _______ heirloom."},
+            {w: "enormous", d: "Very large in size or quantity.", s: "The elephant ate an _______ amount."},
+            {w: "dubious", d: "Hesitating or doubting.", s: "I was _______ about his strange story."},
+            {w: "scavenger", d: "An animal that feeds on dead matter.", s: "A vulture is a well-known _______."},
+            {w: "unleash", d: "To release a strong force or emotion.", s: "Don't _______ the dog in the park."},
+            {w: "crawdad", d: "A freshwater animal like a small lobster.", s: "We caught a _______ in the creek."},
+            {w: "mascot", d: "A character supposed to bring good luck.", s: "The school's _______ is a tiger."},
+            {w: "artifacts", d: "Objects made by humans from the past.", s: "The museum has ancient _______."},
+            {w: "tuxedo", d: "A man's formal suit for the evening.", s: "He wore a _______ to the wedding."},
+            {w: "language", d: "The method of human communication.", s: "English is a common _______."},
+            {w: "sequins", d: "Small, shiny disks sewn onto clothing.", s: "Her dress was covered in _______."},
+            {w: "lanky", d: "Tall and thin with long limbs.", s: "The _______ player reached the hoop easily."},
+            {w: "brandished", d: "Waved something in excitement or threat.", s: "The knight _______ his sword."},
+            {w: "conical", d: "Shaped like a cone.", s: "The wizard wore a tall, _______ hat."},
+            {w: "pediatric", d: "Relating to medical care of children.", s: "He went to the _______ clinic."},
+            {w: "rummage", d: "To search messily through a pile.", s: "I had to _______ through my drawer."},
+            {w: "grimace", d: "A twisted expression of pain.", s: "She made a _______ when she tasted the lemon."},
+            {w: "geranium", d: "A garden plant with red or pink flowers.", s: "My grandma grows a red _______."},
+            {w: "ebony", d: "A very dark black color.", s: "The piano has black _______ keys."},
+            {w: "paltry", d: "A very small or meager amount.", s: "He got a _______ amount of candy."}
         ];
 
         let currentIdx = 0;
         let score = 0;
         let answered = false;
-        const STORAGE_KEY = 'spelling_quiz_debug'; 
+        let shuffledList = [];
+        const STORAGE_KEY = 'spelling_quiz_full_50'; 
 
-        // --- SAFE LOGIC SECTION ---
-        function safeLoad() {
+        // 2. MISSPELING GENERATOR LOGIC
+        function generateMisspellings(correctWord) {
+            const forms = new Set();
+            forms.add(correctWord); // Add correct one first to avoid dupe checking complexity
+
+            const transforms = [
+                { reg: /a/g, rep: 'e' }, { reg: /e/g, rep: 'a' },
+                { reg: /i/g, rep: 'y' }, { reg: /y/g, rep: 'i' },
+                { reg: /c/g, rep: 'k' }, { reg: /ph/g, rep: 'f' },
+                { reg: /f/g, rep: 'ph' }, { reg: /tion/g, rep: 'sion' },
+                { reg: /ll/g, rep: 'l' }, { reg: /mm/g, rep: 'm' },
+                { reg: /ss/g, rep: 's' }, { reg: /tt/g, rep: 't' },
+                { reg: /ou/g, rep: 'o' }, { reg: /ie/g, rep: 'ei' }
+            ];
+
+            // Attempt to create variations
+            let attempts = 0;
+            while (forms.size < 4 && attempts < 50) {
+                let w = correctWord;
+                // Apply 1 or 2 random transformations
+                const t1 = transforms[Math.floor(Math.random() * transforms.length)];
+                if (w.match(t1.reg)) {
+                    w = w.replace(t1.reg, t1.rep);
+                    if (w !== correctWord) forms.add(w);
+                }
+                attempts++;
+            }
+
+            // Fallback if regex didn't generate enough (for short words)
+            if (forms.size < 4) forms.add(correctWord.slice(0, -1)); // remove last char
+            if (forms.size < 4) forms.add(correctWord + 'e'); // add e
+            if (forms.size < 4) forms.add(correctWord.replace(/[aeiou]/, 'o')); // force vowel swap
+
+            // Convert set to array, ensuring correct word is included but hidden in shuffle later
+            return Array.from(forms).slice(0, 4); // Take top 4 unique
+        }
+
+        // 3. APP LOGIC
+        function initGame() {
             try {
-                // Force clear first to verify functionality
-                // localStorage.removeItem(STORAGE_KEY); 
-                
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) {
                     const data = JSON.parse(saved);
-                    currentIdx = data.idx || 0;
-                    score = data.score || 0;
+                    currentIdx = data.idx;
+                    score = data.score;
+                    shuffledList = data.list || [];
                 }
-            } catch (e) {
-                console.error("Load error", e);
-                localStorage.removeItem(STORAGE_KEY);
+            } catch (e) { console.error(e); }
+
+            // If no valid list, start new
+            if (!shuffledList || shuffledList.length !== wordList.length) {
+                // Shuffle the master list indices
+                shuffledList = wordList.map((_, i) => i).sort(() => Math.random() - 0.5);
                 currentIdx = 0;
+                score = 0;
             }
-            
-            // Validate Index
-            if (typeof currentIdx !== 'number' || currentIdx < 0 || currentIdx >= questions.length) {
-                currentIdx = 0;
+
+            if (currentIdx >= shuffledList.length) {
+                currentIdx = 0; // Safety reset
             }
+
+            loadQuestion();
         }
 
         function saveProgress() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ idx: currentIdx, score: score }));
-            } catch(e) { console.error(e); }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                idx: currentIdx,
+                score: score,
+                list: shuffledList
+            }));
         }
 
         function forceReset() {
-            if(confirm("Start quiz over?")) {
+            if(confirm("Restart the quiz from the beginning?")) {
                 restartQuiz();
             }
         }
 
         function restartQuiz() {
             localStorage.removeItem(STORAGE_KEY);
+            shuffledList = [];
             currentIdx = 0;
             score = 0;
-            answered = false;
             document.getElementById('endScreen').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
-            loadQuestion();
+            initGame();
         }
 
         function loadQuestion() {
+            if (currentIdx >= shuffledList.length) {
+                endGame();
+                return;
+            }
+
             answered = false;
-            const qData = questions[currentIdx];
+            // Get the actual word object based on the shuffled index
+            const actualWordObj = wordList[shuffledList[currentIdx]];
             
-            const qText = document.getElementById('questionText');
-            if(qText) qText.innerText = qData.q;
-            
-            document.getElementById('hintText').innerText = "💡 Hint: " + qData.hint;
-            document.getElementById('scoreBoard').innerText = `Question ${currentIdx + 1} / ${questions.length} | Score: ${score}`;
-            document.getElementById('rationaleBox').style.display = 'none';
+            document.getElementById('defText').innerText = actualWordObj.d;
+            document.getElementById('sentText').innerText = `"${actualWordObj.s}"`;
+            document.getElementById('scoreBoard').innerText = `Word ${currentIdx + 1} / ${wordList.length} | Score: ${score}`;
             document.getElementById('nextBtn').style.display = 'none';
 
             const grid = document.getElementById('optionsGrid');
             grid.innerHTML = '';
 
-            const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+            // Generate options
+            let options = generateMisspellings(actualWordObj.w);
+            
+            // Ensure we have exactly 4 options and the correct one is present
+            if(!options.includes(actualWordObj.w)) options[0] = actualWordObj.w;
+            // Remove duplicates just in case
+            options = [...new Set(options)];
+            // If we lost some due to deduping, fill with basic logic
+            while(options.length < 4) options.push(actualWordObj.w + "s");
 
-            shuffledOptions.forEach(opt => {
+            // Shuffle options for display
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach(optText => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-option';
-                btn.innerText = opt.t;
-                btn.onclick = () => checkAnswer(btn, opt);
+                btn.innerText = optText;
+                
+                const isCorrect = (optText === actualWordObj.w);
+                btn.onclick = () => checkAnswer(btn, isCorrect, actualWordObj.w);
                 grid.appendChild(btn);
             });
         }
 
-        function checkAnswer(btn, optionData) {
+        function checkAnswer(btn, isCorrect, correctSpelling) {
             if (answered) return;
             answered = true;
 
-            const rationaleBox = document.getElementById('rationaleBox');
-            rationaleBox.style.display = 'block';
-            rationaleBox.innerText = (optionData.c ? "✅ " : "❌ ") + optionData.r;
-
-            if (optionData.c) {
+            if (isCorrect) {
                 btn.classList.add('correct');
                 score++;
+                triggerConfetti();
             } else {
                 btn.classList.add('wrong');
+                // Auto-highlight correct
                 const allBtns = document.querySelectorAll('.btn-option');
                 allBtns.forEach(b => {
-                    if (questions[currentIdx].options.find(o => o.t === b.innerText && o.c)) {
-                        b.classList.add('correct');
-                    }
+                    if (b.innerText === correctSpelling) b.classList.add('correct');
                 });
             }
             
-            document.getElementById('scoreBoard').innerText = `Question ${currentIdx + 1} / ${questions.length} | Score: ${score}`;
+            document.getElementById('scoreBoard').innerText = `Word ${currentIdx + 1} / ${wordList.length} | Score: ${score}`;
             document.getElementById('nextBtn').style.display = 'block';
-            // Save after answering
-            saveProgress(); 
+            saveProgress();
         }
 
         function nextQuestion() {
             currentIdx++;
-            if (currentIdx >= questions.length) {
-                endGame();
-            } else {
-                saveProgress();
-                loadQuestion();
-            }
+            saveProgress();
+            loadQuestion();
+        }
+
+        function speakWord() {
+            const actualWordObj = wordList[shuffledList[currentIdx]];
+            const utterance = new SpeechSynthesisUtterance(actualWordObj.w);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
         }
 
         function endGame() {
             document.getElementById('gameArea').style.display = 'none';
             document.getElementById('endScreen').style.display = 'block';
-            document.getElementById('finalScore').innerText = `${score} / ${questions.length}`;
+            document.getElementById('finalScore').innerText = `${score} / ${wordList.length}`;
+            fireworks();
             localStorage.removeItem(STORAGE_KEY);
         }
 
-        // --- INITIALIZATION ---
-        // Verify everything is loaded
-        if (!questions || questions.length === 0) {
-            document.getElementById('questionText').innerText = "Error: Questions not loaded.";
-        } else {
-            safeLoad();
-            loadQuestion();
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
         }
+
+        function fireworks() {
+            if (typeof confetti !== 'function') return;
+            var duration = 5 * 1000;
+            var animationEnd = Date.now() + duration;
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+              if (timeLeft <= 0) return clearInterval(interval);
+              confetti({ particleCount: 50, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+            }, 250);
+        }
+
+        // Initialize
+        initGame();
 
     </script>
 </body>
