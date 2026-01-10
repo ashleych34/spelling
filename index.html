@@ -16,11 +16,12 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             display: flex; flex-direction: column; align-items: center; 
-            background-color: var(--bg-color); min-height: 100vh; margin: 0; padding: 15px; box-sizing: border-box; 
+            background-color: var(--bg-color); min-height: 100vh; margin: 0; padding: 15px; box-sizing: border-box;
+            touch-action: pan-y; /* Allows vertical scrolling but helps with horizontal swipe detection */
         }
         
-        .header-info { text-align: center; width: 100%; max-width: 500px; margin-bottom: 15px; }
-        h1 { font-size: 1.5rem; margin: 10px 0; }
+        .header-info { text-align: center; width: 100%; max-width: 500px; margin-bottom: 10px; }
+        h1 { font-size: 1.4rem; margin: 5px 0; }
 
         .settings-panel { 
             background: #fff; padding: 10px; border-radius: 12px; 
@@ -30,8 +31,12 @@
         
         select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
 
+        .card-container {
+            width: 100%; max-width: 450px; position: relative;
+        }
+
         .card { 
-            width: 100%; max-width: 450px; height: 320px; 
+            width: 100%; height: 320px; 
             perspective: 1000px; cursor: pointer; margin-bottom: 20px;
         }
         .card-inner { 
@@ -61,7 +66,7 @@
 
         .controls { 
             width: 100%; max-width: 450px; display: grid; 
-            grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; 
+            grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; 
         }
         .btn-action { 
             padding: 15px; font-size: 1rem; cursor: pointer; border-radius: 12px; 
@@ -78,7 +83,6 @@
         .progress-fill { height: 100%; background-color: var(--success-green); width: 0%; transition: width 0.5s; }
         .stats { font-weight: bold; color: var(--primary-blue); font-size: 0.9rem; text-align: center; margin-bottom: 5px; }
 
-        /* History Section Styles */
         .history-section {
             width: 100%; max-width: 450px; margin-top: 30px; 
             background: #fff; padding: 15px; border-radius: 15px; 
@@ -96,7 +100,7 @@
             border-radius: 20px; font-size: 0.85rem; font-weight: 500;
         }
 
-        .hint-text { font-size: 0.8rem; color: #999; margin-top: 15px; }
+        .hint-text { font-size: 0.75rem; color: #aaa; margin-top: 10px; text-align: center; }
 
         @media (max-width: 380px) {
             .word-text { font-size: 1.8rem; }
@@ -113,7 +117,7 @@
                 <option value="def-first">Definition First</option>
                 <option value="word-first">Spelling First</option>
             </select>
-            <button class="btn-reset" onclick="confirmReset()">Reset Progress</button>
+            <button class="btn-reset" onclick="confirmReset()">Reset</button>
         </div>
         <div class="progress-container">
             <div class="stats" id="statsDisplay">Loading...</div>
@@ -121,12 +125,16 @@
         </div>
     </div>
     
-    <div class="card" id="mainCard">
-        <div class="card-inner">
-            <div class="front" id="frontFace"></div>
-            <div class="back" id="backFace"></div>
+    <div class="card-container">
+        <div class="card" id="mainCard">
+            <div class="card-inner">
+                <div class="front" id="frontFace"></div>
+                <div class="back" id="backFace"></div>
+            </div>
         </div>
     </div>
+
+    <div class="hint-text">💡 Swipe Left for Next | Swipe Right for Prev</div>
 
     <div class="controls">
         <button class="btn-action btn-blue" onclick="prevCard()">⬅️ Prev</button>
@@ -140,8 +148,7 @@
             <span>🏆 Mastered Words</span>
             <span id="historyCount" style="color: var(--success-green);">0</span>
         </div>
-        <div class="history-list" id="historyList">
-            </div>
+        <div class="history-list" id="historyList"></div>
     </div>
 
     <script>
@@ -204,28 +211,41 @@
         const cardElement = document.getElementById('mainCard');
         const STORAGE_KEY = 'spelling_bee_mastered_list';
 
+        // SWIPE DETECTION LOGIC
+        let touchstartX = 0;
+        let touchendX = 0;
+
+        function checkDirection() {
+            const threshold = 50; // Minimum distance for a swipe
+            if (touchendX < touchstartX - threshold) nextCard(); // Swiped Left
+            if (touchendX > touchstartX + threshold) prevCard(); // Swiped Right
+        }
+
+        cardElement.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, false);
+
+        cardElement.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            checkDirection();
+        }, false);
+
+        // PERSISTENCE & UI LOGIC
         function loadProgress() {
             const saved = localStorage.getItem(STORAGE_KEY);
             masteredWords = saved ? JSON.parse(saved) : [];
             activeWords = originalWords.filter(w => !masteredWords.includes(w.w));
-            
             updateHistoryUI();
-
-            if (activeWords.length === 0 && originalWords.length > 0) {
-                fireworks();
-            }
+            if (activeWords.length === 0 && originalWords.length > 0) fireworks();
         }
 
         function updateHistoryUI() {
             const list = document.getElementById('historyList');
-            const count = document.getElementById('historyCount');
+            document.getElementById('historyCount').innerText = masteredWords.length;
             list.innerHTML = masteredWords.map(w => `<div class="history-item">${w}</div>`).join('');
-            count.innerText = masteredWords.length;
         }
 
-        function saveProgress() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(masteredWords));
-        }
+        function saveProgress() { localStorage.setItem(STORAGE_KEY, JSON.stringify(masteredWords)); }
 
         function confirmReset() {
             if (confirm("Clear all progress and start over?")) {
@@ -235,31 +255,25 @@
         }
 
         function triggerConfetti() {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#28a745', '#007bff', '#ffcc00', '#6f42c1']
-            });
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }
 
         function fireworks() {
             var duration = 5 * 1000;
             var animationEnd = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
             var interval = setInterval(function() {
               var timeLeft = animationEnd - Date.now();
               if (timeLeft <= 0) return clearInterval(interval);
-              var particleCount = 50 * (timeLeft / duration);
-              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+              confetti({ particleCount: 50, origin: { x: Math.random(), y: Math.random() - 0.2 } });
             }, 250);
         }
 
         cardElement.addEventListener('click', function(e) {
             if (e.target.closest('button')) return;
-            this.classList.toggle('flipped');
+            // Only flip if it wasn't a horizontal swipe
+            if (Math.abs(touchendX - touchstartX) < 10) {
+                this.classList.toggle('flipped');
+            }
         });
 
         function speakWord(event) {
@@ -272,58 +286,35 @@
 
         function markAsMastered() {
             triggerConfetti();
-            const wordToMove = activeWords[currentIndex].w;
-            masteredWords.push(wordToMove);
+            masteredWords.push(activeWords[currentIndex].w);
             activeWords.splice(currentIndex, 1);
-            
             saveProgress();
             updateHistoryUI();
-            
             if (activeWords.length === 0) {
                 fireworks();
-                setTimeout(() => {
-                    alert("🌟 AMAZING! You have mastered all 50 words! 🌟");
-                    localStorage.removeItem(STORAGE_KEY);
-                    location.reload();
-                }, 1000);
-                return;
+                setTimeout(() => { location.reload(); }, 1000);
+            } else {
+                if (currentIndex >= activeWords.length) currentIndex = 0;
+                updateCard();
             }
-            
-            if (currentIndex >= activeWords.length) currentIndex = 0;
-            updateCard();
         }
 
         function updateCard() {
             const mode = document.getElementById('modeSelect').value;
-            const stats = document.getElementById('statsDisplay');
-            const progressFill = document.getElementById('progressFill');
-            
             const current = activeWords[currentIndex];
             cardElement.classList.remove('flipped');
-
-            stats.innerText = `Remaining: ${activeWords.length} | Mastered: ${masteredWords.length}`;
-            progressFill.style.width = `${(masteredWords.length / originalWords.length) * 100}%`;
+            document.getElementById('statsDisplay').innerText = `Remaining: ${activeWords.length} | Mastered: ${masteredWords.length}`;
+            document.getElementById('progressFill').style.width = `${(masteredWords.length / originalWords.length) * 100}%`;
 
             setTimeout(() => {
                 const frontFace = document.getElementById('frontFace');
                 const backFace = document.getElementById('backFace');
-                
                 if (mode === 'def-first') {
-                    frontFace.innerHTML = `
-                        <div class="definition-text">${current.d}</div>
-                        <div class="sentence-text">${current.s}</div>
-                        <div class="hint-text">(Tap card to see spelling)</div>`;
-                    backFace.innerHTML = `
-                        <button class="btn-audio" onclick="speakWord(event)">🔊</button>
-                        <div class="word-text">${current.w}</div>`;
+                    frontFace.innerHTML = `<div class="definition-text">${current.d}</div><div class="sentence-text">${current.s}</div>`;
+                    backFace.innerHTML = `<button class="btn-audio" onclick="speakWord(event)">🔊</button><div class="word-text">${current.w}</div>`;
                 } else {
-                    frontFace.innerHTML = `
-                        <button class="btn-audio" onclick="speakWord(event)">🔊</button>
-                        <div class="word-text">${current.w}</div>
-                        <div class="hint-text">(Tap card for definition)</div>`;
-                    backFace.innerHTML = `
-                        <div class="definition-text">${current.d}</div>
-                        <div class="sentence-text">${current.s}</div>`;
+                    frontFace.innerHTML = `<button class="btn-audio" onclick="speakWord(event)">🔊</button><div class="word-text">${current.w}</div>`;
+                    backFace.innerHTML = `<div class="definition-text">${current.d}</div><div class="sentence-text">${current.s}</div>`;
                 }
             }, 150);
         }
