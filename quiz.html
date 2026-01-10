@@ -53,7 +53,7 @@
     <div class="quiz-container">
         <div class="quiz-header">
             <h1>📝 Spelling Quiz</h1>
-            <button class="btn-reset" onclick="confirmReset()">Reset Progress</button>
+            <button class="btn-reset" onclick="forceReset()">Reset</button>
         </div>
         
         <div class="score-board" id="scoreBoard">Score: 0 / 0</div>
@@ -159,4 +159,31 @@
                     { t: "conical", r: "Correct!", c: true },
                     { t: "conicle", r: "Incorrect. Ends in '-ical'.", c: false },
                     { t: "connicel", r: "Incorrect. Only one 'n'.", c: false },
-                    { t
+                    { t: "coneical", r: "Incorrect. Drop the 'e' from cone.", c: false }
+                ]
+            },
+            {
+                q: "Which word refers to the medical care of children?",
+                hint: "Starts with 'pedi-'.",
+                options: [
+                    { t: "pediatric", r: "Correct!", c: true },
+                    { t: "pedeatric", r: "Incorrect. 'dia', not 'dea'.", c: false },
+                    { t: "pediatrick", r: "Incorrect. Ends in 'c', not 'ck'.", c: false },
+                    { t: "peediatric", r: "Incorrect. Single 'e'.", c: false }
+                ]
+            },
+            {
+                q: "If you look through a messy drawer to find something, you ______ through it.",
+                hint: "Double 'm', ends in '-age'.",
+                options: [
+                    { t: "rummage", r: "Correct!", c: true },
+                    { t: "rumage", r: "Incorrect. Needs double 'm'.", c: false },
+                    { t: "rummidge", r: "Incorrect. Suffix is '-age'.", c: false },
+                    { t: "rommage", r: "Incorrect. Starts with 'ru'.", c: false }
+                ]
+            }
+        ];
+
+        let currentIdx = 0;
+        let score = 0;
+        let
