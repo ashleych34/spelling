@@ -77,6 +77,25 @@
         .progress-bar { width: 100%; background-color: #d1d1d1; border-radius: 10px; height: 12px; overflow: hidden; }
         .progress-fill { height: 100%; background-color: var(--success-green); width: 0%; transition: width 0.5s; }
         .stats { font-weight: bold; color: var(--primary-blue); font-size: 0.9rem; text-align: center; margin-bottom: 5px; }
+
+        /* History Section Styles */
+        .history-section {
+            width: 100%; max-width: 450px; margin-top: 30px; 
+            background: #fff; padding: 15px; border-radius: 15px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .history-title { 
+            font-weight: bold; font-size: 1.1rem; color: #333; 
+            margin-bottom: 10px; display: flex; justify-content: space-between;
+        }
+        .history-list { 
+            display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; 
+        }
+        .history-item { 
+            background: #e9ecef; color: #495057; padding: 5px 12px; 
+            border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+        }
+
         .hint-text { font-size: 0.8rem; color: #999; margin-top: 15px; }
 
         @media (max-width: 380px) {
@@ -114,6 +133,15 @@
         <button class="btn-action btn-orange" onclick="nextCard()">Next ➡️</button>
         <button class="btn-action btn-green" onclick="markAsMastered()">✅ I Mastered This!</button>
         <button class="btn-action btn-blue" style="grid-column: span 2; background-color: #6c757d;" onclick="shuffleCards()">🔀 Shuffle Remaining</button>
+    </div>
+
+    <div class="history-section">
+        <div class="history-title">
+            <span>🏆 Mastered Words</span>
+            <span id="historyCount" style="color: var(--success-green);">0</span>
+        </div>
+        <div class="history-list" id="historyList">
+            </div>
     </div>
 
     <script>
@@ -171,26 +199,31 @@
         ];
 
         let activeWords = [];
-        let masteredCount = 0;
+        let masteredWords = [];
         let currentIndex = 0;
         const cardElement = document.getElementById('mainCard');
         const STORAGE_KEY = 'spelling_bee_mastered_list';
 
         function loadProgress() {
             const saved = localStorage.getItem(STORAGE_KEY);
-            const masteredWords = saved ? JSON.parse(saved) : [];
+            masteredWords = saved ? JSON.parse(saved) : [];
             activeWords = originalWords.filter(w => !masteredWords.includes(w.w));
-            masteredCount = originalWords.length - activeWords.length;
+            
+            updateHistoryUI();
+
             if (activeWords.length === 0 && originalWords.length > 0) {
-                // All words mastered, trigger a final big celebration
                 fireworks();
             }
         }
 
+        function updateHistoryUI() {
+            const list = document.getElementById('historyList');
+            const count = document.getElementById('historyCount');
+            list.innerHTML = masteredWords.map(w => `<div class="history-item">${w}</div>`).join('');
+            count.innerText = masteredWords.length;
+        }
+
         function saveProgress() {
-            const masteredWords = originalWords
-                .filter(w => !activeWords.some(aw => aw.w === w.w))
-                .map(w => w.w);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(masteredWords));
         }
 
@@ -214,11 +247,7 @@
             var duration = 5 * 1000;
             var animationEnd = Date.now() + duration;
             var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-            function randomInRange(min, max) {
-              return Math.random() * (max - min) + min;
-            }
-
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
             var interval = setInterval(function() {
               var timeLeft = animationEnd - Date.now();
               if (timeLeft <= 0) return clearInterval(interval);
@@ -243,9 +272,12 @@
 
         function markAsMastered() {
             triggerConfetti();
+            const wordToMove = activeWords[currentIndex].w;
+            masteredWords.push(wordToMove);
             activeWords.splice(currentIndex, 1);
-            masteredCount++;
+            
             saveProgress();
+            updateHistoryUI();
             
             if (activeWords.length === 0) {
                 fireworks();
@@ -269,8 +301,8 @@
             const current = activeWords[currentIndex];
             cardElement.classList.remove('flipped');
 
-            stats.innerText = `Remaining: ${activeWords.length} | Mastered: ${masteredCount}`;
-            progressFill.style.width = `${(masteredCount / originalWords.length) * 100}%`;
+            stats.innerText = `Remaining: ${activeWords.length} | Mastered: ${masteredWords.length}`;
+            progressFill.style.width = `${(masteredWords.length / originalWords.length) * 100}%`;
 
             setTimeout(() => {
                 const frontFace = document.getElementById('frontFace');
@@ -283,8 +315,7 @@
                         <div class="hint-text">(Tap card to see spelling)</div>`;
                     backFace.innerHTML = `
                         <button class="btn-audio" onclick="speakWord(event)">🔊</button>
-                        <div class="word-text">${current.w}</div>
-                        <div class="hint-text">(Tap to flip back)</div>`;
+                        <div class="word-text">${current.w}</div>`;
                 } else {
                     frontFace.innerHTML = `
                         <button class="btn-audio" onclick="speakWord(event)">🔊</button>
