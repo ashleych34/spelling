@@ -2,44 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Spelling Bee Mastery Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f8ff; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --audio-purple: #6f42c1;
+            --bg-color: #f0f8ff;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            background-color: var(--bg-color); min-height: 100vh; margin: 0; padding: 15px; box-sizing: border-box; 
+        }
         
-        .header-info { text-align: center; margin-bottom: 20px; }
-        .settings-panel { margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px; }
+        .header-info { text-align: center; width: 100%; max-width: 500px; margin-bottom: 15px; }
+        h1 { font-size: 1.5rem; margin: 10px 0; }
+
+        .settings-panel { 
+            background: #fff; padding: 10px; border-radius: 12px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; 
+            justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px;
+        }
         
-        .card { width: 450px; height: 320px; perspective: 1000px; cursor: pointer; }
-        .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-radius: 15px; }
+        select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+
+        .card { 
+            width: 100%; max-width: 450px; height: 320px; 
+            perspective: 1000px; cursor: pointer; margin-bottom: 20px;
+        }
+        .card-inner { 
+            position: relative; width: 100%; height: 100%; text-align: center; 
+            transition: transform 0.6s; transform-style: preserve-3d; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-radius: 20px; 
+        }
         .card.flipped .card-inner { transform: rotateY(180deg); }
-        .front, .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; border-radius: 15px; box-sizing: border-box; border: 2px solid #ddd; }
+        .front, .back { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            padding: 20px; border-radius: 20px; box-sizing: border-box; border: 1px solid #eee;
+        }
         
         .front { background-color: #ffffff; color: #333; }
         .back { background-color: #ffcc00; color: #000; transform: rotateY(180deg); }
         
-        .word-text { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
-        .definition-text { font-size: 1.2em; font-weight: 500; line-height: 1.4; }
-        .sentence-text { font-style: italic; margin-top: 15px; color: #555; font-size: 1.1em; }
+        .word-text { font-size: 2.2rem; font-weight: bold; margin: 10px 0; }
+        .definition-text { font-size: 1.1rem; font-weight: 500; line-height: 1.4; padding: 0 10px; }
+        .sentence-text { font-style: italic; margin-top: 15px; color: #555; font-size: 1rem; }
         
-        .btn-audio { background-color: #6f42c1; font-size: 20px; width: 55px; height: 55px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-audio:hover { background-color: #59359a; transform: scale(1.1); }
+        .btn-audio { 
+            background-color: var(--audio-purple); font-size: 24px; width: 60px; height: 60px; 
+            border-radius: 50%; border: none; color: white; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
 
-        /* Control Bar Styles */
-        .controls { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-        .btn-action { padding: 12px 20px; font-size: 15px; cursor: pointer; border-radius: 8px; border: none; color: white; font-weight: bold; transition: 0.2s; min-width: 100px; }
-        
-        .btn-blue { background-color: #007bff; }
-        .btn-blue:hover { background-color: #0056b3; }
-        
-        .btn-green { background-color: #28a745; }
-        .btn-green:hover { background-color: #218838; }
-        
+        .controls { 
+            width: 100%; max-width: 450px; display: grid; 
+            grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; 
+        }
+        .btn-action { 
+            padding: 15px; font-size: 1rem; cursor: pointer; border-radius: 12px; 
+            border: none; color: white; font-weight: bold; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-blue { background-color: var(--primary-blue); }
+        .btn-green { background-color: var(--success-green); grid-column: span 2; }
         .btn-orange { background-color: #fd7e14; }
-        .btn-orange:hover { background-color: #d96a0b; }
+        .btn-reset { background: #dc3545; color: white; border: none; padding: 5px 12px; border-radius: 6px; font-size: 12px; }
 
-        .progress-bar { width: 450px; background-color: #ddd; border-radius: 10px; height: 10px; margin-top: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background-color: #28a745; width: 0%; transition: width 0.3s; }
-        .stats { font-weight: bold; color: #007bff; margin-top: 5px; }
+        .progress-container { width: 100%; max-width: 450px; margin-bottom: 10px; }
+        .progress-bar { width: 100%; background-color: #d1d1d1; border-radius: 10px; height: 12px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: var(--success-green); width: 0%; transition: width 0.5s; }
+        .stats { font-weight: bold; color: var(--primary-blue); font-size: 0.9rem; text-align: center; margin-bottom: 5px; }
+        .hint-text { font-size: 0.8rem; color: #999; margin-top: 15px; }
+
+        @media (max-width: 380px) {
+            .word-text { font-size: 1.8rem; }
+            .card { height: 280px; }
+        }
     </style>
 </head>
 <body>
@@ -47,15 +90,16 @@
     <div class="header-info">
         <h1>🐝 Spelling Bee Mastery</h1>
         <div class="settings-panel">
-            <span>Study Mode:</span>
             <select id="modeSelect" onchange="updateCard()">
                 <option value="def-first">Definition First</option>
                 <option value="word-first">Spelling First</option>
             </select>
-            <button onclick="resetAll()" style="font-size: 12px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Reset All</button>
+            <button class="btn-reset" onclick="confirmReset()">Reset Progress</button>
         </div>
-        <div class="stats" id="statsDisplay">Remaining: 50 | Mastered: 0</div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-container">
+            <div class="stats" id="statsDisplay">Loading...</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
     </div>
     
     <div class="card" id="mainCard">
@@ -66,10 +110,10 @@
     </div>
 
     <div class="controls">
-        <button class="btn-action btn-blue" onclick="prevCard()">⬅️ Previous</button>
-        <button class="btn-action btn-blue" onclick="nextCard()">Next ➡️</button>
-        <button class="btn-action btn-green" onclick="markAsMastered()">✅ Mastered</button>
-        <button class="btn-action btn-orange" onclick="shuffleCards()">🔀 Shuffle</button>
+        <button class="btn-action btn-blue" onclick="prevCard()">⬅️ Prev</button>
+        <button class="btn-action btn-orange" onclick="nextCard()">Next ➡️</button>
+        <button class="btn-action btn-green" onclick="markAsMastered()">✅ I Mastered This!</button>
+        <button class="btn-action btn-blue" style="grid-column: span 2; background-color: #6c757d;" onclick="shuffleCards()">🔀 Shuffle Remaining</button>
     </div>
 
     <script>
@@ -126,10 +170,63 @@
             {w: "paltry", d: "A very small or meager amount.", s: "He got a _______ amount of candy."}
         ];
 
-        let activeWords = [...originalWords];
+        let activeWords = [];
         let masteredCount = 0;
         let currentIndex = 0;
         const cardElement = document.getElementById('mainCard');
+        const STORAGE_KEY = 'spelling_bee_mastered_list';
+
+        function loadProgress() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const masteredWords = saved ? JSON.parse(saved) : [];
+            activeWords = originalWords.filter(w => !masteredWords.includes(w.w));
+            masteredCount = originalWords.length - activeWords.length;
+            if (activeWords.length === 0 && originalWords.length > 0) {
+                // All words mastered, trigger a final big celebration
+                fireworks();
+            }
+        }
+
+        function saveProgress() {
+            const masteredWords = originalWords
+                .filter(w => !activeWords.some(aw => aw.w === w.w))
+                .map(w => w.w);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(masteredWords));
+        }
+
+        function confirmReset() {
+            if (confirm("Clear all progress and start over?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        }
+
+        function triggerConfetti() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#28a745', '#007bff', '#ffcc00', '#6f42c1']
+            });
+        }
+
+        function fireworks() {
+            var duration = 5 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+              if (timeLeft <= 0) return clearInterval(interval);
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
 
         cardElement.addEventListener('click', function(e) {
             if (e.target.closest('button')) return;
@@ -145,14 +242,18 @@
         }
 
         function markAsMastered() {
-            if (activeWords.length === 0) return;
-            
+            triggerConfetti();
             activeWords.splice(currentIndex, 1);
             masteredCount++;
+            saveProgress();
             
             if (activeWords.length === 0) {
-                alert("🎉 Amazing! You mastered all 50 words!");
-                resetAll();
+                fireworks();
+                setTimeout(() => {
+                    alert("🌟 AMAZING! You have mastered all 50 words! 🌟");
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }, 1000);
                 return;
             }
             
@@ -165,25 +266,33 @@
             const stats = document.getElementById('statsDisplay');
             const progressFill = document.getElementById('progressFill');
             
-            if (activeWords.length === 0) return;
-            
             const current = activeWords[currentIndex];
             cardElement.classList.remove('flipped');
 
-            // Update Stats
             stats.innerText = `Remaining: ${activeWords.length} | Mastered: ${masteredCount}`;
-            progressFill.style.width = `${(masteredCount / 50) * 100}%`;
+            progressFill.style.width = `${(masteredCount / originalWords.length) * 100}%`;
 
             setTimeout(() => {
                 const frontFace = document.getElementById('frontFace');
                 const backFace = document.getElementById('backFace');
                 
                 if (mode === 'def-first') {
-                    frontFace.innerHTML = `<div class="definition-text">${current.d}</div><div class="sentence-text">${current.s}</div><div style="font-size:0.8em; color:#aaa; margin-top:20px;">(Guess the word, then flip)</div>`;
-                    backFace.innerHTML = `<button class="btn-audio" onclick="speakWord(event)">🔊</button><div class="word-text">${current.w}</div><div style="font-size:0.8em; color:#444; margin-top:15px;">Correct? Click Mastered below!</div>`;
+                    frontFace.innerHTML = `
+                        <div class="definition-text">${current.d}</div>
+                        <div class="sentence-text">${current.s}</div>
+                        <div class="hint-text">(Tap card to see spelling)</div>`;
+                    backFace.innerHTML = `
+                        <button class="btn-audio" onclick="speakWord(event)">🔊</button>
+                        <div class="word-text">${current.w}</div>
+                        <div class="hint-text">(Tap to flip back)</div>`;
                 } else {
-                    frontFace.innerHTML = `<button class="btn-audio" onclick="speakWord(event)">🔊</button><div class="word-text">${current.w}</div><div style="font-size:0.8em; color:#aaa; margin-top:20px;">(Recall definition, then flip)</div>`;
-                    backFace.innerHTML = `<div class="definition-text">${current.d}</div><div class="sentence-text">${current.s}</div><div style="font-size:0.8em; color:#444; margin-top:15px;">Remembered it? Click Mastered below!</div>`;
+                    frontFace.innerHTML = `
+                        <button class="btn-audio" onclick="speakWord(event)">🔊</button>
+                        <div class="word-text">${current.w}</div>
+                        <div class="hint-text">(Tap card for definition)</div>`;
+                    backFace.innerHTML = `
+                        <div class="definition-text">${current.d}</div>
+                        <div class="sentence-text">${current.s}</div>`;
                 }
             }, 150);
         }
@@ -191,8 +300,8 @@
         function nextCard() { currentIndex = (currentIndex + 1) % activeWords.length; updateCard(); }
         function prevCard() { currentIndex = (currentIndex - 1 + activeWords.length) % activeWords.length; updateCard(); }
         function shuffleCards() { activeWords.sort(() => Math.random() - 0.5); currentIndex = 0; updateCard(); }
-        function resetAll() { activeWords = [...originalWords]; masteredCount = 0; currentIndex = 0; updateCard(); }
 
+        loadProgress();
         updateCard();
     </script>
 </body>
