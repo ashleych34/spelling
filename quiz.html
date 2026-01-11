@@ -3,29 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spelling Bee Quiz: Full List</title>
+    <title>Spelling Bee Levels</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f0f8ff; }
+        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f0f8ff; --purple: #6f42c1; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
-        .quiz-container { width: 100%; max-width: 500px; background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 25px; text-align: center; position: relative; }
+        .container { width: 100%; max-width: 500px; background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px; text-align: center; position: relative; min-height: 400px; }
         
-        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h1 { margin: 0; color: #333; font-size: 1.5rem; text-align: left; }
-        .btn-reset { background: #ffebee; color: #c62828; border: none; padding: 8px 15px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        h1 { margin: 0 0 15px 0; color: #333; font-size: 1.5rem; }
+
+        /* LEVEL SELECT MENU */
+        .level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .level-btn {
+            background: white; border: 2px solid #ddd; border-radius: 15px;
+            padding: 20px; font-size: 1.1rem; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: transform 0.2s, border-color 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #555;
+        }
+        .level-btn:hover { transform: translateY(-3px); border-color: var(--primary); color: var(--primary); }
+        .level-btn.completed { border-color: var(--success); background: #f0fff4; }
+        .level-title { font-weight: 800; margin-bottom: 5px; }
+        .level-score { font-size: 0.85rem; color: #888; font-weight: normal; }
+        .level-icon { font-size: 1.5rem; margin-top: 5px; }
+
+        /* QUIZ AREA (Hidden by default) */
+        #quizInterface { display: none; }
         
-        .score-board { font-size: 1rem; color: #666; margin-bottom: 20px; font-weight: bold; background: #f8f9fa; padding: 10px; border-radius: 10px; }
-        
-        .definition-box { font-size: 1.2rem; font-weight: 600; color: #222; margin-bottom: 10px; line-height: 1.4; min-height: 50px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .btn-back { background: #f8f9fa; border: none; font-size: 0.9rem; padding: 5px 10px; border-radius: 5px; cursor: pointer; color: #666; }
+        .score-badge { font-weight: bold; color: var(--primary); background: #e7f1ff; padding: 5px 10px; border-radius: 10px; }
+
+        .definition-box { font-size: 1.2rem; font-weight: 600; color: #222; margin: 20px 0; line-height: 1.4; min-height: 60px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .sentence-text { font-size: 1rem; color: #555; font-style: italic; margin-top: 10px; font-weight: normal; }
         
-        .options-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
-        
+        .options-grid { display: flex; flex-direction: column; gap: 12px; }
         .btn-option {
             background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px;
             padding: 15px; font-size: 1.2rem; color: #333; cursor: pointer;
-            transition: all 0.2s; font-weight: 600; text-align: left; position: relative;
+            transition: all 0.2s; font-weight: 600; text-align: left;
         }
         .btn-option:hover { border-color: var(--primary); background: #e7f1ff; }
         .btn-option.correct { background: #d4edda; border-color: var(--success); color: #155724; }
@@ -34,55 +51,71 @@
         .btn-next {
             margin-top: 20px; padding: 15px 30px; background: var(--primary); color: white;
             border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold;
-            cursor: pointer; width: 100%; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer; width: 100%; display: none;
         }
-        
-        .home-link { margin-top: 20px; color: #007bff; text-decoration: none; font-size: 0.9rem; font-weight: 500; }
-        
+
         .btn-audio { 
-            background-color: #6f42c1; font-size: 20px; width: 40px; height: 40px; 
+            background-color: var(--purple); font-size: 20px; width: 45px; height: 45px; 
             border-radius: 50%; border: none; color: white; cursor: pointer; 
-            margin-bottom: 10px; display: inline-flex; align-items: center; justify-content: center;
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
+        /* End Screen */
+        #endScreen { display: none; }
+        .final-score { font-size: 3.5rem; margin: 10px 0; color: var(--primary); }
+        .result-msg { font-size: 1.2rem; margin-bottom: 20px; color: #555; }
+
+        .home-link { margin-top: 20px; color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
     </style>
 </head>
 <body>
 
-    <div class="quiz-container">
-        <div class="quiz-header">
-            <h1>📝 Full List Quiz</h1>
-            <button class="btn-reset" onclick="forceReset()">Reset</button>
-        </div>
+    <div class="container">
         
-        <div class="score-board" id="scoreBoard">Score: 0 / 0</div>
-        
-        <div id="gameArea">
-            <button class="btn-audio" onclick="speakWord()" title="Listen">🔊</button>
-            <div class="definition-box" id="questionText">
-                <span id="defText">Loading...</span>
-                <span id="sentText" class="sentence-text"></span>
+        <div id="menuScreen">
+            <h1>🗺️ Select a Level</h1>
+            <p style="color:#666; font-size:0.9rem;">Master 10 words at a time!</p>
+            <div class="level-grid" id="levelGrid">
+                </div>
+            <div style="margin-top:20px;">
+                <button onclick="resetAllProgress()" style="background:none; border:none; color:#aaa; font-size:0.8rem; cursor:pointer; text-decoration:underline;">Reset All Progress</button>
             </div>
-            
-            <div class="options-grid" id="optionsGrid"></div>
-
-            <button class="btn-next" id="nextBtn" onclick="nextQuestion()">Next Word ➡️</button>
         </div>
 
-        <div id="endScreen" style="display: none;">
-            <h2>🎉 Challenge Complete!</h2>
-            <p style="font-size: 1.2rem;">Final Score:</p>
-            <h1 style="font-size: 3rem; color: var(--primary);" id="finalScore">0</h1>
-            <button class="btn-next" style="display: block;" onclick="restartQuiz()">Restart Full List 🔄</button>
-            <br>
-            <a href="index.html" class="btn-next" style="display: block; background: #6c757d; text-decoration: none;">Back to Flashcards</a>
+        <div id="quizInterface">
+            <div class="top-bar">
+                <button class="btn-back" onclick="showMenu()">← Menu</button>
+                <div id="levelIndicator" style="font-weight:bold; color:#333;">Level 1</div>
+                <div class="score-badge" id="liveScore">0/10</div>
+            </div>
+
+            <div id="gameArea">
+                <button class="btn-audio" onclick="speakWord()" title="Listen">🔊</button>
+                <div class="definition-box">
+                    <span id="defText">Loading...</span>
+                    <span id="sentText" class="sentence-text"></span>
+                </div>
+                <div class="options-grid" id="optionsGrid"></div>
+                <button class="btn-next" id="nextBtn" onclick="nextQuestion()">Next Word ➡️</button>
+            </div>
         </div>
+
+        <div id="endScreen">
+            <h2 id="endTitle">🎉 Level Complete!</h2>
+            <div class="final-score" id="finalScoreDisplay">0/10</div>
+            <p class="result-msg" id="resultMsg">Great job!</p>
+            <button class="btn-next" style="display:block;" onclick="showMenu()">Back to Map 🗺️</button>
+            <button class="btn-next" style="display:block; background:#6c757d; margin-top:10px;" onclick="restartLevel()">Try Level Again 🔄</button>
+        </div>
+
     </div>
 
     <a href="index.html" class="home-link">← Back to Flashcards</a>
 
     <script>
-        // 1. THE FULL 50 WORD LIST
-        const wordList = [
+        // --- DATA: FULL 50 WORDS ---
+        const fullWordList = [
             {w: "hesitate", d: "To pause before you do something because you are unsure.", s: "Please do not _______ to ask for help."},
             {w: "fragments", d: "Small broken parts or pieces of something.", s: "The vase broke into many _______."},
             {w: "ration", d: "A fixed amount of something officially allowed to each person.", s: "We had to _______ our water during the hike."},
@@ -93,6 +126,7 @@
             {w: "prognosis", d: "A doctor's opinion of how an illness will develop.", s: "The doctor's _______ was very positive."},
             {w: "gallop", d: "The fastest pace of a horse.", s: "The horses began to _______ across the field."},
             {w: "fluently", d: "Able to speak or write a language easily.", s: "She speaks Spanish _______."},
+            
             {w: "sardines", d: "Small, silvery fish often packed in cans.", s: "Some people enjoy eating _______ on crackers."},
             {w: "rickety", d: "Not strong or stable; likely to break.", s: "The _______ old bridge swayed in the wind."},
             {w: "porridge", d: "A soft food made by boiling oats in water or milk.", s: "Goldilocks ate the _______."},
@@ -103,6 +137,7 @@
             {w: "scorcher", d: "A very hot day.", s: "Today is a real _______!"},
             {w: "deflated", d: "Having let the air out of something.", s: "My basketball is _______ and won't bounce."},
             {w: "cosmetics", d: "Products used to improve appearance.", s: "Lipsticks are types of _______."},
+            
             {w: "unruly", d: "Difficult to control or manage.", s: "The wind made my hair very _______."},
             {w: "moustache", d: "Hair grown on a man's upper lip.", s: "He has a thick, white _______."},
             {w: "sinister", d: "Giving the impression that something evil will happen.", s: "The villain had a _______ laugh."},
@@ -113,6 +148,7 @@
             {w: "anguish", d: "Severe mental or physical pain.", s: "She felt _______ when she lost her cat."},
             {w: "lilt", d: "A characteristic rising and falling of the voice.", s: "She speaks with a cheerful _______."},
             {w: "democracy", d: "A system of government where people vote.", s: "In a _______, people vote for leaders."},
+            
             {w: "ancestral", d: "Belonging to or inherited from ancestors.", s: "This is an _______ heirloom."},
             {w: "enormous", d: "Very large in size or quantity.", s: "The elephant ate an _______ amount."},
             {w: "dubious", d: "Hesitating or doubting.", s: "I was _______ about his strange story."},
@@ -123,6 +159,7 @@
             {w: "artifacts", d: "Objects made by humans from the past.", s: "The museum has ancient _______."},
             {w: "tuxedo", d: "A man's formal suit for the evening.", s: "He wore a _______ to the wedding."},
             {w: "language", d: "The method of human communication.", s: "English is a common _______."},
+            
             {w: "sequins", d: "Small, shiny disks sewn onto clothing.", s: "Her dress was covered in _______."},
             {w: "lanky", d: "Tall and thin with long limbs.", s: "The _______ player reached the hoop easily."},
             {w: "brandished", d: "Waved something in excitement or threat.", s: "The knight _______ his sword."},
@@ -135,206 +172,258 @@
             {w: "paltry", d: "A very small or meager amount.", s: "He got a _______ amount of candy."}
         ];
 
-        let currentIdx = 0;
-        let score = 0;
+        // --- APP STATE ---
+        const STORAGE_KEY = 'spelling_levels_v1';
+        let levelScores = [0, 0, 0, 0, 0]; // Best score for each level
+        
+        let currentLevel = 0; // 0-4
+        let levelWords = [];  // The 10 words for active level
+        let shuffledIndices = []; // Indices of levelWords
+        let qIndex = 0; // 0-9
+        let currentScore = 0;
         let answered = false;
-        let shuffledList = [];
-        const STORAGE_KEY = 'spelling_quiz_full_50'; 
 
-        // 2. MISSPELING GENERATOR LOGIC
-        function generateMisspellings(correctWord) {
-            const forms = new Set();
-            forms.add(correctWord); // Add correct one first to avoid dupe checking complexity
-
-            const transforms = [
-                { reg: /a/g, rep: 'e' }, { reg: /e/g, rep: 'a' },
-                { reg: /i/g, rep: 'y' }, { reg: /y/g, rep: 'i' },
-                { reg: /c/g, rep: 'k' }, { reg: /ph/g, rep: 'f' },
-                { reg: /f/g, rep: 'ph' }, { reg: /tion/g, rep: 'sion' },
-                { reg: /ll/g, rep: 'l' }, { reg: /mm/g, rep: 'm' },
-                { reg: /ss/g, rep: 's' }, { reg: /tt/g, rep: 't' },
-                { reg: /ou/g, rep: 'o' }, { reg: /ie/g, rep: 'ei' }
-            ];
-
-            // Attempt to create variations
-            let attempts = 0;
-            while (forms.size < 4 && attempts < 50) {
-                let w = correctWord;
-                // Apply 1 or 2 random transformations
-                const t1 = transforms[Math.floor(Math.random() * transforms.length)];
-                if (w.match(t1.reg)) {
-                    w = w.replace(t1.reg, t1.rep);
-                    if (w !== correctWord) forms.add(w);
-                }
-                attempts++;
-            }
-
-            // Fallback if regex didn't generate enough (for short words)
-            if (forms.size < 4) forms.add(correctWord.slice(0, -1)); // remove last char
-            if (forms.size < 4) forms.add(correctWord + 'e'); // add e
-            if (forms.size < 4) forms.add(correctWord.replace(/[aeiou]/, 'o')); // force vowel swap
-
-            // Convert set to array, ensuring correct word is included but hidden in shuffle later
-            return Array.from(forms).slice(0, 4); // Take top 4 unique
+        // --- INIT ---
+        function initApp() {
+            loadProgress();
+            renderMenu();
         }
 
-        // 3. APP LOGIC
-        function initGame() {
+        function loadProgress() {
             try {
                 const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    currentIdx = data.idx;
-                    score = data.score;
-                    shuffledList = data.list || [];
-                }
-            } catch (e) { console.error(e); }
-
-            // If no valid list, start new
-            if (!shuffledList || shuffledList.length !== wordList.length) {
-                // Shuffle the master list indices
-                shuffledList = wordList.map((_, i) => i).sort(() => Math.random() - 0.5);
-                currentIdx = 0;
-                score = 0;
-            }
-
-            if (currentIdx >= shuffledList.length) {
-                currentIdx = 0; // Safety reset
-            }
-
-            loadQuestion();
+                if(saved) levelScores = JSON.parse(saved);
+            } catch(e) { console.error(e); }
         }
 
         function saveProgress() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                idx: currentIdx,
-                score: score,
-                list: shuffledList
-            }));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(levelScores));
         }
 
-        function forceReset() {
-            if(confirm("Restart the quiz from the beginning?")) {
-                restartQuiz();
+        function resetAllProgress() {
+            if(confirm("Are you sure? This will delete all stars.")) {
+                localStorage.removeItem(STORAGE_KEY);
+                levelScores = [0, 0, 0, 0, 0];
+                renderMenu();
             }
         }
 
-        function restartQuiz() {
-            localStorage.removeItem(STORAGE_KEY);
-            shuffledList = [];
-            currentIdx = 0;
-            score = 0;
+        // --- MENU SCREEN ---
+        function renderMenu() {
+            document.getElementById('menuScreen').style.display = 'block';
+            document.getElementById('quizInterface').style.display = 'none';
             document.getElementById('endScreen').style.display = 'none';
-            document.getElementById('gameArea').style.display = 'block';
-            initGame();
+            
+            const grid = document.getElementById('levelGrid');
+            grid.innerHTML = '';
+
+            for(let i=0; i<5; i++) {
+                const btn = document.createElement('div');
+                const score = levelScores[i] || 0;
+                let statusClass = score >= 7 ? 'completed' : '';
+                
+                // Icon Logic
+                let icon = '🔒';
+                let scoreText = 'Not started';
+                
+                // Unlock logic: Level 1 always open, others if prev >= 7 (optional, currently all open)
+                let isLocked = false; 
+
+                if (score === 10) icon = '🥇'; // Gold Medal
+                else if (score >= 7) icon = '⭐️'; // Star
+                else if (score > 0) icon = '📝'; // In progress
+                else icon = '📚';
+
+                if (score > 0) scoreText = `Best: ${score}/10`;
+
+                btn.className = `level-btn ${statusClass}`;
+                btn.innerHTML = `
+                    <div class="level-title">Level ${i+1}</div>
+                    <div class="level-score">${scoreText}</div>
+                    <div class="level-icon">${icon}</div>
+                `;
+                btn.onclick = () => startLevel(i);
+                grid.appendChild(btn);
+            }
+        }
+
+        function showMenu() {
+            renderMenu();
+        }
+
+        // --- GAME LOGIC ---
+        function startLevel(levelIndex) {
+            currentLevel = levelIndex;
+            
+            // Slice the main array (0-9, 10-19, etc)
+            const start = levelIndex * 10;
+            const end = start + 10;
+            levelWords = fullWordList.slice(start, end);
+            
+            // Randomize order within the level
+            shuffledIndices = levelWords.map((_, i) => i).sort(() => Math.random() - 0.5);
+            
+            qIndex = 0;
+            currentScore = 0;
+            
+            document.getElementById('menuScreen').style.display = 'none';
+            document.getElementById('endScreen').style.display = 'none';
+            document.getElementById('quizInterface').style.display = 'block';
+            document.getElementById('levelIndicator').innerText = `Level ${currentLevel + 1}`;
+            
+            loadQuestion();
+        }
+
+        function restartLevel() {
+            startLevel(currentLevel);
         }
 
         function loadQuestion() {
-            if (currentIdx >= shuffledList.length) {
-                endGame();
+            if (qIndex >= 10) {
+                endLevel();
                 return;
             }
 
             answered = false;
-            // Get the actual word object based on the shuffled index
-            const actualWordObj = wordList[shuffledList[currentIdx]];
-            
-            document.getElementById('defText').innerText = actualWordObj.d;
-            document.getElementById('sentText').innerText = `"${actualWordObj.s}"`;
-            document.getElementById('scoreBoard').innerText = `Word ${currentIdx + 1} / ${wordList.length} | Score: ${score}`;
+            document.getElementById('liveScore').innerText = `${currentScore}/10`;
             document.getElementById('nextBtn').style.display = 'none';
 
+            // Get current word object
+            const wordObj = levelWords[shuffledIndices[qIndex]];
+            
+            document.getElementById('defText').innerText = wordObj.d;
+            document.getElementById('sentText').innerText = `"${wordObj.s}"`;
+
+            // Generate Options
             const grid = document.getElementById('optionsGrid');
             grid.innerHTML = '';
-
-            // Generate options
-            let options = generateMisspellings(actualWordObj.w);
             
-            // Ensure we have exactly 4 options and the correct one is present
-            if(!options.includes(actualWordObj.w)) options[0] = actualWordObj.w;
-            // Remove duplicates just in case
-            options = [...new Set(options)];
-            // If we lost some due to deduping, fill with basic logic
-            while(options.length < 4) options.push(actualWordObj.w + "s");
-
-            // Shuffle options for display
+            let options = generateMisspellings(wordObj.w);
+            if(!options.includes(wordObj.w)) options[0] = wordObj.w;
+            // Fill if needed
+            while(options.length < 4) options.push(wordObj.w + "s");
+            // Shuffle
             options.sort(() => Math.random() - 0.5);
 
             options.forEach(optText => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-option';
                 btn.innerText = optText;
-                
-                const isCorrect = (optText === actualWordObj.w);
-                btn.onclick = () => checkAnswer(btn, isCorrect, actualWordObj.w);
+                btn.onclick = () => handleAnswer(btn, optText === wordObj.w, wordObj.w);
                 grid.appendChild(btn);
             });
         }
 
-        function checkAnswer(btn, isCorrect, correctSpelling) {
-            if (answered) return;
+        function handleAnswer(btn, isCorrect, correctWord) {
+            if(answered) return;
             answered = true;
 
-            if (isCorrect) {
+            if(isCorrect) {
                 btn.classList.add('correct');
-                score++;
-                triggerConfetti();
+                currentScore++;
+                triggerConfetti(0.5);
             } else {
                 btn.classList.add('wrong');
-                // Auto-highlight correct
+                // Highlight correct
                 const allBtns = document.querySelectorAll('.btn-option');
                 allBtns.forEach(b => {
-                    if (b.innerText === correctSpelling) b.classList.add('correct');
+                    if(b.innerText === correctWord) b.classList.add('correct');
                 });
             }
-            
-            document.getElementById('scoreBoard').innerText = `Word ${currentIdx + 1} / ${wordList.length} | Score: ${score}`;
+
+            document.getElementById('liveScore').innerText = `${currentScore}/10`;
             document.getElementById('nextBtn').style.display = 'block';
-            saveProgress();
         }
 
         function nextQuestion() {
-            currentIdx++;
-            saveProgress();
+            qIndex++;
             loadQuestion();
         }
 
+        function endLevel() {
+            document.getElementById('quizInterface').style.display = 'none';
+            document.getElementById('endScreen').style.display = 'block';
+            
+            const prevBest = levelScores[currentLevel] || 0;
+            if (currentScore > prevBest) {
+                levelScores[currentLevel] = currentScore;
+                saveProgress();
+            }
+
+            document.getElementById('finalScoreDisplay').innerText = `${currentScore}/10`;
+            
+            const msg = document.getElementById('resultMsg');
+            const title = document.getElementById('endTitle');
+            
+            if(currentScore === 10) {
+                title.innerText = "🥇 Perfect Score!";
+                msg.innerText = "You are a Spelling Champion!";
+                fireworks();
+            } else if (currentScore >= 7) {
+                title.innerText = "⭐️ Level Complete!";
+                msg.innerText = "Great job! You earned a star.";
+                triggerConfetti(1.0);
+            } else {
+                title.innerText = "Keep Practicing!";
+                msg.innerText = "Try again to earn your star.";
+            }
+        }
+
         function speakWord() {
-            const actualWordObj = wordList[shuffledList[currentIdx]];
-            const utterance = new SpeechSynthesisUtterance(actualWordObj.w);
+            const wordObj = levelWords[shuffledIndices[qIndex]];
+            const utterance = new SpeechSynthesisUtterance(wordObj.w);
             utterance.lang = 'en-US';
             utterance.rate = 0.85;
             window.speechSynthesis.speak(utterance);
         }
 
-        function endGame() {
-            document.getElementById('gameArea').style.display = 'none';
-            document.getElementById('endScreen').style.display = 'block';
-            document.getElementById('finalScore').innerText = `${score} / ${wordList.length}`;
-            fireworks();
-            localStorage.removeItem(STORAGE_KEY);
+        // --- UTILS ---
+        function generateMisspellings(word) {
+            const forms = new Set([word]);
+            const transforms = [
+                { reg: /a/g, rep: 'e' }, { reg: /e/g, rep: 'a' },
+                { reg: /i/g, rep: 'y' }, { reg: /y/g, rep: 'i' },
+                { reg: /c/g, rep: 'k' }, { reg: /ph/g, rep: 'f' },
+                { reg: /tion/g, rep: 'sion' }, { reg: /ll/g, rep: 'l' },
+                { reg: /mm/g, rep: 'm' }, { reg: /ss/g, rep: 's' },
+                { reg: /ou/g, rep: 'o' }, { reg: /ie/g, rep: 'ei' }
+            ];
+            
+            let attempts = 0;
+            while(forms.size < 4 && attempts < 20) {
+                let w = word;
+                const t = transforms[Math.floor(Math.random() * transforms.length)];
+                if(w.match(t.reg)) {
+                    w = w.replace(t.reg, t.rep);
+                    if(w !== word) forms.add(w);
+                }
+                attempts++;
+            }
+            // Fallbacks
+            if(forms.size < 4) forms.add(word.slice(0, -1));
+            if(forms.size < 4) forms.add(word + 's');
+            if(forms.size < 4) forms.add(word.replace(/[aeiou]/, 'o'));
+            
+            return Array.from(forms).slice(0, 4);
         }
 
-        function triggerConfetti() {
-            if (typeof confetti === 'function') {
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            }
+        function triggerConfetti(ratio) {
+            if(typeof confetti === 'function') confetti({ particleCount: 50 * ratio, spread: 70, origin: { y: 0.6 } });
         }
 
         function fireworks() {
-            if (typeof confetti !== 'function') return;
-            var duration = 5 * 1000;
-            var animationEnd = Date.now() + duration;
-            var interval = setInterval(function() {
-              var timeLeft = animationEnd - Date.now();
-              if (timeLeft <= 0) return clearInterval(interval);
-              confetti({ particleCount: 50, origin: { x: Math.random(), y: Math.random() - 0.2 } });
-            }, 250);
+            if(typeof confetti !== 'function') return;
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
         }
 
-        // Initialize
-        initGame();
-
+        // START
+        initApp();
     </script>
 </body>
 </html>
